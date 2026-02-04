@@ -140,6 +140,7 @@ st.markdown("""
         padding: 8px 12px;
         border-radius: 6px;
         transition: all 0.3s ease;
+        color: #000000 !important;
     }
     
     .stRadio > label:hover {
@@ -209,6 +210,54 @@ def get_db_config() -> dict:
         "database": os.environ.get("DB_NAME", "baixe_db"),
         "port": int(os.environ.get("DB_PORT", "3306")),
     }
+
+
+# ===== MAPPING BIỂN SỐ THEO TỈNH =====
+BIEN_SO_TINH = {
+    # Miền Bắc
+    11: "Cao Bằng", 12: "Lạng Sơn", 14: "Quảng Ninh", 15: "Hải Phòng", 16: "Hải Phòng",
+    17: "Thái Bình", 18: "Nam Định", 19: "Phú Thọ", 20: "Thái Nguyên", 21: "Yên Bái",
+    22: "Tuyên Quang", 98: "Bắc Giang", 27: "Điện Biên", 97: "Bắc Kạn",
+    88: "Vĩnh Phúc", 99: "Bắc Ninh", 34: "Hải Dương", 89: "Hưng Yên", 
+    90: "Hà Nam", 35: "Ninh Bình", 23: "Hà Giang", 24: "Lào Cai",
+    25: "Lai Châu", 26: "Sơn La", 28: "Hòa Bình",
+    
+    # Miền Trung & Tây Nguyên
+    36: "Thanh Hóa", 76: "Quảng Ngãi", 37: "Nghệ An", 77: "Bình Định", 38: "Hà Tĩnh",
+    78: "Phú Yên", 73: "Quảng Bình", 79: "Khánh Hòa", 74: "Quảng Trị", 81: "Gia Lai",
+    75: "Thừa Thiên Huế", 82: "Kon Tum", 43: "Đà Nẵng", 48: "Đắk Nông", 92: "Quảng Nam",
+    47: "Đắk Lắk", 85: "Ninh Thuận", 49: "Lâm Đồng", 86: "Bình Thuận",
+    
+    # Miền Nam
+    41: "TP. Hồ Chí Minh", 50: "TP. Hồ Chí Minh", 59: "TP. Hồ Chí Minh", 
+    39: "Đồng Nai", 60: "Đồng Nai", 61: "Bình Dương", 62: "Long An",
+    63: "Tiền Giang", 64: "Vĩnh Long", 66: "Đồng Tháp", 67: "An Giang", 68: "Kiên Giang",
+    69: "Cà Mau", 70: "Tây Ninh", 71: "Bến Tre", 72: "Bà Rịa - Vũng Tàu",
+    65: "Cần Thơ", 93: "Bình Phước", 83: "Sóc Trăng", 84: "Trà Vinh", 94: "Bạc Liêu",
+    95: "Hậu Giang"
+}
+
+# Danh sách tất cả tỉnh thành
+DANH_SACH_TINH = sorted(list(set(BIEN_SO_TINH.values())))
+
+
+def get_tinh_from_bien_so(so_bien: str) -> Optional[str]:
+    """Lấy tên tỉnh từ mã số biển (2 chữ số đầu)."""
+    try:
+        # Tách 2 chữ số đầu tiên
+        parts = so_bien.split("-")
+        if len(parts) < 2:
+            return None
+        
+        ma_tinh_str = parts[1].strip()
+        # Lấy 2 chữ số đầu
+        if len(ma_tinh_str) >= 2:
+            ma_tinh = int(ma_tinh_str[:2])
+            return BIEN_SO_TINH.get(ma_tinh, None)
+    except (IndexError, ValueError):
+        pass
+    
+    return None
 
 
 def get_db_connection() -> Optional[mysql.connector.MySQLConnection]:
@@ -336,6 +385,118 @@ def bgr_to_pil(image_bgr: np.ndarray) -> Image.Image:
     return Image.fromarray(image_rgb)
 
 
+def render_quy_trinh_page() -> None:
+    """Trang hiển thị quy trình của hệ thống."""
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%); padding: 15px; border-radius: 8px; margin-bottom: 15px;'>
+        <h1 style='color: white; margin: 0; font-size: 1.8em;'>📋 Quy Trình Hệ Thống</h1>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.subheader("🔄 Quy trình chính")
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.markdown("""
+        <div style='background: #E3F2FD; border: 2px solid #2E86AB; border-radius: 8px; padding: 15px; text-align: center;'>
+            <h4 style='color: #2E86AB; margin: 0 0 5px 0;'>1️⃣ Nhập hình ảnh</h4>
+            <p style='margin: 0; font-size: 0.9em;'>Tải hình ảnh biển số xe</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("<div style='display: flex; align-items: center; justify-content: center; height: 100%;'><h2 style='color: #2E86AB; margin: 0;'>→</h2></div>", unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style='background: #F3E5F5; border: 2px solid #A23B72; border-radius: 8px; padding: 15px; text-align: center;'>
+            <h4 style='color: #A23B72; margin: 0 0 5px 0;'>2️⃣ Xử lý OCR</h4>
+            <p style='margin: 0; font-size: 0.9em;'>EasyOCR nhận dạng ký tự</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("<div style='display: flex; align-items: center; justify-content: center; height: 100%;'><h2 style='color: #2E86AB; margin: 0;'>→</h2></div>", unsafe_allow_html=True)
+    
+    with col5:
+        st.markdown("""
+        <div style='background: #E8F5E9; border: 2px solid #06A77D; border-radius: 8px; padding: 15px; text-align: center;'>
+            <h4 style='color: #06A77D; margin: 0 0 5px 0;'>3️⃣ Lưu kết quả</h4>
+            <p style='margin: 0; font-size: 0.9em;'>Lưu vào CSDL</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+    
+    st.subheader("🎯 Các chức năng chính")
+    
+    col_f1, col_f2 = st.columns(2)
+    
+    with col_f1:
+        st.markdown("""
+        <div style='background: #F5F9FC; border-left: 4px solid #2E86AB; border-radius: 6px; padding: 15px; margin-bottom: 10px;'>
+            <h4 style='color: #2E86AB; margin: 0 0 8px 0;'>🚗 Quản lý xe</h4>
+            <ul style='margin: 0; padding-left: 20px; font-size: 0.95em;'>
+                <li>Thêm/Sửa/Xóa thông tin xe</li>
+                <li>Quản lý chủ sở hữu</li>
+                <li>Cập nhật trạng thái</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style='background: #F5F9FC; border-left: 4px solid #2E86AB; border-radius: 6px; padding: 15px; margin-bottom: 10px;'>
+            <h4 style='color: #2E86AB; margin: 0 0 8px 0;'>🎯 Nhận dạng</h4>
+            <ul style='margin: 0; padding-left: 20px; font-size: 0.95em;'>
+                <li>OCR biển số xe</li>
+                <li>Ghi nhận ra/vào</li>
+                <li>Lưu hình ảnh</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col_f2:
+        st.markdown("""
+        <div style='background: #F5F9FC; border-left: 4px solid #A23B72; border-radius: 6px; padding: 15px; margin-bottom: 10px;'>
+            <h4 style='color: #A23B72; margin: 0 0 8px 0;'>⚠️ Vi phạm & Danh sách đen</h4>
+            <ul style='margin: 0; padding-left: 20px; font-size: 0.95em;'>
+                <li>Quản lý vi phạm giao thông</li>
+                <li>Danh sách xe bị cấm</li>
+                <li>Lịch sử vi phạm</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style='background: #F5F9FC; border-left: 4px solid #06A77D; border-radius: 6px; padding: 15px; margin-bottom: 10px;'>
+            <h4 style='color: #06A77D; margin: 0 0 8px 0;'>💳 Thanh toán & Thống kê</h4>
+            <ul style='margin: 0; padding-left: 20px; font-size: 0.95em;'>
+                <li>Quản lý thanh toán phạt</li>
+                <li>Thống kê ra/vào</li>
+                <li>Báo cáo chi tiết</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.divider()
+    
+    st.subheader("💾 Luồng dữ liệu")
+    
+    st.markdown("""
+    <div style='background: #FFFDE7; border-left: 4px solid #F18F01; border-radius: 6px; padding: 15px;'>
+        <p style='margin: 0; font-size: 0.95em;'>
+            <strong>Hình ảnh</strong> → <strong>OCR (EasyOCR)</strong> → <strong>Biển số</strong> → <strong>Tra cứu CSDL</strong> → 
+            <strong>Lưu lịch sử</strong> → <strong>Xử lý Vi phạm</strong> → <strong>Thống kê</strong>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.divider()
+    
+    st.info("ℹ️ Hệ thống được thiết kế để nhận dạng, quản lý và theo dõi phương tiện giao thông một cách tự động và hiệu quả.")
+
+
 def render_ocr_page() -> None:
     """Trang demo OCR biển số."""
     st.markdown("""
@@ -374,7 +535,17 @@ def render_ocr_page() -> None:
         uploaded = st.file_uploader("Tải ảnh biển số (jpg, png)", type=["jpg", "jpeg", "png"])
         
         # Tùy chọn tiền xử lý
-        use_preprocessing = st.checkbox("🔧 Tiền xử lý ảnh (tăng độ tương phản, khử nhiễu)", value=True)
+        st.markdown("#### 🔧 Tùy chọn xử lý ảnh")
+        col_proc1, col_proc2 = st.columns(2)
+        with col_proc1:
+            use_preprocessing = st.checkbox("Tiền xử lý chuẩn", value=True)
+        with col_proc2:
+            brightness = st.slider("Độ sáng", -50, 50, 0, key="brightness")
+            contrast = st.slider("Độ tương phản", 0.5, 2.0, 1.0, key="contrast")
+        
+        # Initialize session state
+        if "ocr_result" not in st.session_state:
+            st.session_state.ocr_result = None
         
         if uploaded is not None:
             image_bytes = uploaded.read()
@@ -394,30 +565,49 @@ def render_ocr_page() -> None:
                         # Tiền xử lý nếu được bật
                         processed_bgr = preprocess_image(image_bgr) if use_preprocessing else image_bgr
                         
+                        # Điều chỉnh brightness & contrast
+                        if brightness != 0 or contrast != 1.0:
+                            pil_temp = bgr_to_pil(processed_bgr)
+                            from PIL import ImageEnhance
+                            enhancer_brightness = ImageEnhance.Brightness(pil_temp)
+                            pil_temp = enhancer_brightness.enhance(1 + brightness / 100)
+                            enhancer_contrast = ImageEnhance.Contrast(pil_temp)
+                            pil_temp = enhancer_contrast.enhance(contrast)
+                            processed_bgr = pil_to_bgr(pil_temp)
+                        
                         texts_with_conf, boxes = read_text_and_boxes(processed_bgr)
                         output_bgr = draw_boxes(processed_bgr, boxes, texts_with_conf)
                         output_pil = bgr_to_pil(output_bgr)
 
-                        st.image(output_pil, use_container_width=True)
-
-                        # Hiển thị kết quả với confidence
-                        if texts_with_conf:
-                            texts = [t[0] for t in texts_with_conf]
-                            plate_text = " - ".join(texts).strip()
-                            st.session_state.last_plate_text = plate_text
-                            
-                            # Hiển thị từng phần với confidence
-                            st.success(f"✅ **Biển số: {plate_text}**")
-                            
-                            with st.expander("📊 Chi tiết nhận dạng"):
-                                for text, conf in texts_with_conf:
-                                    col1, col2 = st.columns([3, 1])
-                                    with col1:
-                                        st.write(f"**{text}**")
-                                    with col2:
-                                        st.metric("Độ tin cậy", f"{conf*100:.1f}%")
-                        else:
-                            st.warning("⚠️ Không tìm thấy biển số nào hợp lệ!")
+                        # Lưu kết quả vào session state
+                        st.session_state.ocr_result = {
+                            'output_pil': output_pil,
+                            'texts_with_conf': texts_with_conf,
+                            'pil_image': pil_image
+                        }
+                
+                # Hiển thị kết quả đã lưu
+                if st.session_state.ocr_result:
+                    st.image(st.session_state.ocr_result['output_pil'], use_container_width=True)
+            
+            # Hiển thị kết quả bên ngoài columns
+            if st.session_state.ocr_result and st.session_state.ocr_result.get('texts_with_conf'):
+                st.divider()
+                texts_with_conf = st.session_state.ocr_result['texts_with_conf']
+                texts = [t[0] for t in texts_with_conf]
+                plate_text = " - ".join(texts).strip()
+                st.session_state.last_plate_text = plate_text
+                
+                # Hiển thị kết quả
+                st.success(f"✅ **Biển số nhận dạng được: {plate_text}**")
+                
+                with st.expander("📊 Chi tiết nhận dạng"):
+                    for text, conf in texts_with_conf:
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            st.write(f"**{text}**")
+                        with col2:
+                            st.metric("Độ tin cậy", f"{conf*100:.1f}%")
 
                 if st.session_state.last_plate_text:
                     st.divider()
@@ -1074,8 +1264,16 @@ def render_manage_page() -> None:
         keyword = st.text_input("🔎 Tìm kiếm biển số / chủ xe / SĐT")
     with col_search_mid:
         province_codes = fetch_province_codes(conn)
-        province_options = ["Tất cả"] + province_codes
-        province_filter = st.selectbox("📌 Lọc theo mã tỉnh", province_options)
+        # Tạo danh sách với tên tỉnh và mã
+        province_options_display = ["Tất cả"] + [
+            f"{BIEN_SO_TINH.get(int(code), code)} ({code})" for code in province_codes
+        ]
+        province_filter_idx = st.selectbox(
+            "📌 Lọc theo tỉnh", 
+            range(len(province_options_display)),
+            format_func=lambda i: province_options_display[i]
+        )
+        province_filter = None if province_filter_idx == 0 else province_codes[province_filter_idx - 1]
     with col_search_right:
         search_btn = st.button("🔍 Tìm kiếm", use_container_width=True)
 
@@ -1426,6 +1624,72 @@ def render_thong_ke_page() -> None:
     else:
         st.info("Chưa có dữ liệu.")
     
+    st.divider()
+    
+    # Thống kê xe theo tỉnh/thành phố
+    st.markdown("### 🗺️ Phân bố xe theo tỉnh/thành phố")
+    
+    try:
+        with conn.cursor(dictionary=True) as cursor:
+            cursor.execute("SELECT so_bien FROM bienso WHERE trang_thai = 1")
+            all_bien_so = cursor.fetchall()
+        
+        if all_bien_so:
+            # Đếm số xe theo tỉnh
+            tinh_count = {}
+            total_xe = len(all_bien_so)
+            
+            for row in all_bien_so:
+                so_bien = row['so_bien']
+                tinh = get_tinh_from_bien_so(so_bien)
+                if tinh:
+                    tinh_count[tinh] = tinh_count.get(tinh, 0) + 1
+                else:
+                    tinh_count["Không xác định"] = tinh_count.get("Không xác định", 0) + 1
+            
+            # Sắp xếp theo số lượng giảm dần
+            sorted_tinh = sorted(tinh_count.items(), key=lambda x: x[1], reverse=True)
+            
+            # Tạo DataFrame với %
+            df_tinh = pd.DataFrame([
+                {
+                    "Tỉnh/Thành phố": tinh,
+                    "Số lượng xe": count,
+                    "Tỷ lệ (%)": f"{(count/total_xe*100):.1f}%"
+                }
+                for tinh, count in sorted_tinh
+            ])
+            
+            col_chart1, col_chart2 = st.columns([2, 1])
+            
+            with col_chart1:
+                st.markdown("#### 📊 Top 10 tỉnh có nhiều xe nhất")
+                # Lấy top 10
+                top_10 = sorted_tinh[:10]
+                df_top10 = pd.DataFrame({
+                    "Tỉnh": [t[0] for t in top_10],
+                    "Số lượng": [t[1] for t in top_10]
+                })
+                st.bar_chart(df_top10.set_index("Tỉnh"))
+            
+            with col_chart2:
+                st.markdown("#### 📈 Thống kê tổng")
+                st.metric("Tổng số xe", total_xe)
+                st.metric("Số tỉnh/thành", len(tinh_count))
+                avg_xe = total_xe / len(tinh_count) if len(tinh_count) > 0 else 0
+                st.metric("TB xe/tỉnh", f"{avg_xe:.0f}")
+            
+            st.divider()
+            
+            # Hiển thị bảng chi tiết
+            st.markdown("#### 📋 Chi tiết phân bố xe theo tỉnh")
+            st.dataframe(df_tinh, use_container_width=True, height=400)
+        else:
+            st.info("Chưa có dữ liệu xe trong hệ thống.")
+    
+    except mysql.connector.Error as err:
+        st.error(f"Lỗi truy vấn: {err}")
+    
     conn.close()
 
 
@@ -1451,7 +1715,7 @@ def render_tra_cuu_bienso_page() -> None:
     
     # Hai cách nhập: Tìm kiếm trực tiếp hoặc quét ảnh/camera
     st.markdown("### 🔎 Chọn phương thức tra cứu")
-    tab1, tab2, tab3 = st.tabs(["🔤 Nhập biển số", "📁 Tải ảnh", "📷 Camera"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🔤 Nhập biển số", "📁 Tải ảnh", "📷 Camera", "🗺️ Theo tỉnh"])
     
     with tab1:
         st.markdown("#### Tìm kiếm trực tiếp")
@@ -1466,6 +1730,11 @@ def render_tra_cuu_bienso_page() -> None:
                 else:
                     # Hiển thị thông tin cơ bản
                     st.success(f"✅ Tìm thấy biển số: {so_bien}")
+                    
+                    # Nhận dạng tỉnh từ biển số
+                    tinh = get_tinh_from_bien_so(so_bien)
+                    if tinh:
+                        st.info(f"📍 Biển số thuộc: **{tinh}**")
                     
                     # Kiểm tra sự kiện xen kẽ VAO/RA
                     # Lấy loại sự kiện được chọn (từ cấu hình ở đầu trang)
@@ -1897,16 +2166,108 @@ def render_tra_cuu_bienso_page() -> None:
                                 tong_no = sum(t["so_tien"] for t in chua_tt)
                                 st.error(f"**Tổng nợ: {tong_no:,.0f} ₫**")
     
+    with tab4:
+        st.markdown("#### 🗺️ Tìm kiếm theo tỉnh/thành phố")
+        
+        # Chọn tỉnh với hiển thị đẹp hơn
+        tinh_selected = st.selectbox("🗺️ Chọn tỉnh/thành phố", DANH_SACH_TINH, key="tinh_tracuu")
+        
+        if st.button("🔍 Tìm kiếm xe theo tỉnh", key="btn_tracuu_tinh", use_container_width=True):
+            if tinh_selected:
+                # Tìm tất cả mã biển của tỉnh
+                ma_tinhlist = [k for k, v in BIEN_SO_TINH.items() if v == tinh_selected]
+                
+                if ma_tinhlist:
+                    try:
+                        with conn.cursor(dictionary=True) as cursor:
+                            # Tìm tất cả xe có biển số từ tỉnh này
+                            placeholders = ",".join([f"'{ma}%'" for ma in ma_tinhlist])
+                            query = f"SELECT so_bien, chu_xe, sdt, ngay_dang_ky FROM bienso WHERE "
+                            
+                            conditions = []
+                            for ma in ma_tinhlist:
+                                conditions.append(f"so_bien LIKE '{ma}%'")
+                            query += " OR ".join(conditions)
+                            query += " ORDER BY so_bien"
+                            
+                            cursor.execute(query)
+                            results = cursor.fetchall()
+                        
+                        if results:
+                            st.success(f"✅ Tìm thấy **{len(results)}** xe từ {tinh_selected}")
+                            
+                            # Hiển thị bảng với tên tỉnh
+                            df_results = pd.DataFrame(results)
+                            st.dataframe(df_results, use_container_width=True)
+                            
+                            # Option chọn xe để xem chi tiết
+                            st.divider()
+                            st.markdown("#### 📋 Chọn xe để xem chi tiết")
+                            
+                            # Tạo danh sách hiển thị với tên tỉnh
+                            bien_so_list = [r['so_bien'] for r in results]
+                            selected_bien = st.selectbox(
+                                "Chọn biển số:", 
+                                bien_so_list,
+                                key="bien_so_detail",
+                                format_func=lambda x: f"{x} ({tinh_selected})"
+                            )
+                            
+                            if st.button("📌 Xem chi tiết xe", key="btn_detail_tinh", use_container_width=True):
+                                info = get_info_xe_toan_bo(conn, selected_bien)
+                                
+                                if info["bienso"]:
+                                    st.success(f"✅ Thông tin xe: **{selected_bien}**")
+                                    
+                                    # Thông tin tỉnh - hiển thị ngay lên đầu
+                                    st.info(f"📍 **Biển số thuộc tỉnh: {tinh_selected}**")
+                                    st.divider()
+                                    
+                                    # Thông tin chủ xe
+                                    st.subheader("📋 Thông tin chủ xe")
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        st.write(f"**Chủ xe:** {info['bienso']['chu_xe']}")
+                                    with col2:
+                                        st.write(f"**SĐT:** {info['bienso']['sdt'] or 'N/A'}")
+                                    with col3:
+                                        st.write(f"**Ngày đăng ký:** {info['bienso']['ngay_dang_ky']}")
+                                    
+                                    # Thông tin xe
+                                    if info["chi_tiet"]:
+                                        st.subheader("🚗 Thông tin chi tiết xe")
+                                        col1, col2, col3 = st.columns(3)
+                                        with col1:
+                                            st.write(f"**Loại xe:** {info['chi_tiet']['loai_xe']}")
+                                        with col2:
+                                            st.write(f"**Hãng xe:** {info['chi_tiet']['hang_xe'] or 'N/A'}")
+                                        with col3:
+                                            st.write(f"**Màu:** {info['chi_tiet']['mau_xe'] or 'N/A'}")
+                                    
+                                    # Thống kê
+                                    st.subheader("📊 Thống kê")
+                                    col1, col2 = st.columns(2)
+                                    with col1:
+                                        st.metric("Tổng lần vào", info["tong_lan_vao"])
+                                    with col2:
+                                        st.metric("Tổng lần ra", info["tong_lan_ra"])
+                                else:
+                                    st.warning("Không tìm thấy thông tin xe")
+                        else:
+                            st.info(f"Không có xe nào từ {tinh_selected} trong hệ thống")
+                    except mysql.connector.Error as err:
+                        st.error(f"Lỗi truy vấn: {err}")
+    
     conn.close()
 
 
 # --- GIAO DIỆN CHÍNH ---
 
-# Header
+# Header compact
 st.markdown("""
-<div style='text-align: center; padding: 20px 0; background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%); border-radius: 10px; margin-bottom: 20px;'>
-    <h1 style='color: white; margin: 0; font-size: 2.5em;'>🚗 Hệ Thống Nhận Dạng Biển Số Xe</h1>
-    <p style='color: #E0E0E0; margin: 10px 0 0 0; font-size: 1.1em;'>Sử dụng AI OCR - EasyOCR</p>
+<div style='text-align: center; padding: 12px 0; background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%); border-radius: 8px; margin-bottom: 12px;'>
+    <h1 style='color: white; margin: 0; font-size: 1.8em;'>🚗 Hệ Thống Nhận Dạng Biển Số Xe</h1>
+    <p style='color: #E0E0E0; margin: 4px 0 0 0; font-size: 0.85em;'>AI OCR - EasyOCR</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1917,18 +2278,14 @@ if "login_error" not in st.session_state:
     st.session_state.login_error = ""
 
 if not st.session_state.logged_in:
-    # Login page styling
-    st.markdown("""
-    <div style='max-width: 400px; margin: 50px auto; padding: 40px; background: linear-gradient(135deg, #f5f9fc 0%, #eff4f8 100%); border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); border: 2px solid #2E86AB;'>
-    <h2 style='color: #2E86AB; text-align: center; margin-bottom: 30px;'>🔐 Đăng Nhập</h2>
-    """, unsafe_allow_html=True)
-    
-    username = st.text_input("👤 Tài khoản", key="username_input")
-    password = st.text_input("🔑 Mật khẩu", type="password", key="password_input")
-    
+    # Login page - gọn gàng
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🚀 Đăng Nhập", use_container_width=True):
+        st.markdown("<h4 style='text-align: center; color: #2E86AB; margin: 0 0 10px 0;'>🔐 Đăng Nhập</h4>", unsafe_allow_html=True)
+        username = st.text_input("", key="username_input", placeholder="Tài khoản")
+        password = st.text_input("", type="password", key="password_input", placeholder="Mật khẩu")
+        
+        if st.button("Đăng Nhập", use_container_width=True, key="login_btn"):
             admin_user, admin_pass = get_auth_config()
             if username == admin_user and password == admin_pass:
                 st.session_state.logged_in = True
@@ -1937,13 +2294,9 @@ if not st.session_state.logged_in:
                 st.rerun()
             else:
                 st.session_state.login_error = "❌ Sai tài khoản hoặc mật khẩu."
-
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    if st.session_state.login_error:
-        st.error(st.session_state.login_error)
-
-    st.info("ℹ️ Bạn có thể cấu hình tài khoản trong secrets hoặc biến môi trường ADMIN_USER/ADMIN_PASS.")
+        
+        if st.session_state.login_error:
+            st.error(st.session_state.login_error)
 else:
     with st.sidebar:
         st.markdown("""
@@ -1955,15 +2308,24 @@ else:
         st.markdown("<div style='padding: 10px 0;'></div>", unsafe_allow_html=True)
         
         menu = st.radio("", [
-            "🚗 Quản lý xe", 
-            "🎯 Nhận dạng biển số",
-            "🔍 Tra cứu biển số",
-            "📋 Chi tiết xe",
-            "🚫 Danh sách đen",
-            "⚠️ Vi phạm",
-            "💳 Thanh toán",
-            "📊 Thống kê & báo cáo"
-        ], index=0)
+            "Quy trình",
+            "Quản lý xe", 
+            "Nhận dạng biển số",
+            "Tra cứu biển số",
+            "Danh sách đen",
+            "Vi phạm",
+            "Thanh toán",
+            "Thống kê & báo cáo"
+        ], index=1, format_func=lambda x: {
+            "Quy trình": "📋 Quy trình",
+            "Quản lý xe": "🚗 Quản lý xe",
+            "Nhận dạng biển số": "🎯 Nhận dạng biển số",
+            "Tra cứu biển số": "🔍 Tra cứu biển số",
+            "Danh sách đen": "🚫 Danh sách đen",
+            "Vi phạm": "⚠️ Vi phạm",
+            "Thanh toán": "💳 Thanh toán",
+            "Thống kê & báo cáo": "📊 Thống kê & báo cáo"
+        }[x])
         
         st.markdown("<hr>", unsafe_allow_html=True)
         
@@ -1976,19 +2338,19 @@ else:
                 st.session_state.logged_in = False
                 st.rerun()
 
-    if menu == "🚗 Quản lý xe":
+    if menu == "Quy trình":
+        render_quy_trinh_page()
+    elif menu == "Quản lý xe":
         render_manage_page()
-    elif menu == "🎯 Nhận dạng biển số":
+    elif menu == "Nhận dạng biển số":
         render_ocr_page()
-    elif menu == "🔍 Tra cứu biển số":
+    elif menu == "Tra cứu biển số":
         render_tra_cuu_bienso_page()
-    elif menu == "📋 Chi tiết xe":
-        render_chi_tiet_xe_page()
-    elif menu == "🚫 Danh sách đen":
+    elif menu == "Danh sách đen":
         render_danh_sach_den_page()
-    elif menu == "⚠️ Vi phạm":
+    elif menu == "Vi phạm":
         render_vi_pham_page()
-    elif menu == "💳 Thanh toán":
+    elif menu == "Thanh toán":
         render_thanh_toan_page()
     else:
         render_thong_ke_page()
